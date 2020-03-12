@@ -1,0 +1,47 @@
+#!/bin/bash
+
+set -e
+
+# partially taken from direnv own install.sh
+
+kernel=$(uname -s | tr "[:upper:]" "[:lower:]")
+case "$(uname -m)" in
+  x86_64)
+    machine=amd64
+    ;;
+  i686|i386)
+    machine=386
+    ;;
+  *)
+    die "Machine $(uname -m) not supported by the installer.\n" \
+      "Go to https://direnv.net for alternate installation methods."
+    ;;
+esac
+
+echo "Looking for latest release info..."
+
+latest_json=$(curl -fL https://api.github.com/repos/direnv/direnv/releases/latest)
+
+version=$(
+  echo "$latest_json" \
+  | grep tag_name \
+  | cut -d '"' -f 4
+)
+
+if [[ -f direnv-$version ]]; then
+  echo "direnv is already up-to-date ($version)"
+else
+  echo "Getting URL for $version (kernel=$kernel machine=$machine)"
+  download_url=$(
+    echo "$latest_json" \
+    | grep browser_download_url \
+    | cut -d '"' -f 4 \
+    | grep "direnv.$kernel.$machine"
+  )
+
+  echo "Downloading $download_url..."
+  curl -o "direnv-$version" -fL "$download_url"
+fi
+
+cp "direnv-$version" direnv
+chmod +x direnv
